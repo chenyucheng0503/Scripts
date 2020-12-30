@@ -422,6 +422,15 @@ def withdraw_to_wallet(headers, amount):
 
 def qq_read():
     config_latest, config_current = read()
+    utc_datetime, beijing_datetime = get_standard_time()
+
+    # 每天21点40分重置 Notify_Flag 为1
+    if beijing_datetime.hour == 21 and 40 < beijing_datetime.minute < 59:
+        with open('flag.txt', 'w') as f:
+            f.write('1')
+
+    Notify_Flag = int(open('flag.txt').readline())
+
     # 读取企鹅读书配置
     try:
         qq_read_config = config_current['jobs']['qq_read']
@@ -685,14 +694,16 @@ def qq_read():
                 print(content)
 
                 '''如果需要一个单独开箱子的脚本，删除↑↓箭头内脚本，一共4个代码段，这是第4个代码段   ↓ '''
-
                 # 每天 22:00 - 22:10 发送消息推送
-                if qq_read_config['notify'] and beijing_datetime.hour == 22 and beijing_datetime.minute < 10:
+                print(Notify_Flag)
+                if qq_read_config['notify'] and Notify_Flag == 1 and beijing_datetime.hour == 22 and beijing_datetime.minute < 10:
                     notify.send(title=title, content=content, notify_mode=notify_mode)
                 elif not qq_read_config['notify']:
                     print('未进行消息推送，原因：未设置消息推送。如需发送消息推送，请确保配置文件的对应的脚本任务中，参数notify的值为true\n')
                 elif not beijing_datetime.hour == 22:
                     print('未进行消息推送，原因：没到对应的推送时间点\n')
+                elif not Notify_Flag == 1:
+                    print('未进行消息推送，原因：已经推送过一遍了\n')
                 else:
                     print('未在规定的时间范围内\n')
 
@@ -711,6 +722,11 @@ def qq_read():
                                     content=f'QQ账号 {qq_id[0]} headers过期!', notify_mode=notify_mode)
                 else:
                     print('获取QQ账号失败，请检查headers')
+
+        # 运行一遍后重置flag为0
+        if beijing_datetime.hour == 22:
+            with open('flag.txt', 'w') as f:
+                f.write('0')
     else:
         print('未执行该任务，如需执行请在配置文件的对应的任务中，将参数enable设置为true\n')
 
